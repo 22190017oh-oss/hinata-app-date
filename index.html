@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>☀️ひなたぼっこ☀️ — フルデモ</title>
+<style>
+  :root{--accent:#ff8c00;--bg:#fffbe6;}
+  body{font-family: "Hiragino Kaku Gothic ProN","Meiryo",sans-serif;background:var(--bg);margin:12px;color:#333;}
+  h1,h2{color:var(--accent);margin:0 0 8px 0;}
+  .section{background:#fff8e1;border:1px solid #ffd700;padding:12px;border-radius:10px;margin-bottom:12px;}
+  .two-col{display:flex;gap:12px;flex-wrap:wrap;}
+  .col{flex:1;min-width:260px;}
+  input[type=text],input[type=password],input[type=number],select,textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;margin-top:6px;box-sizing:border-box;}
+  button.btn{background:var(--accent);color:white;border:none;padding:10px;border-radius:8px;cursor:pointer;}
+  .profile-card{background:white;border:1px solid #ffd59a;padding:8px;border-radius:8px;margin-bottom:8px;}
+  .small{font-size:13px;color:#666;margin-top:6px;}
+  .sun{font-size:22px;cursor:pointer;margin-right:6px;user-select:none;}
+  #chat{background:#fffde7;border:1px solid #ffd59a;padding:8px;height:180px;overflow:auto;border-radius:8px;}
+  .match-popup{position:fixed;left:50%;top:20%;transform:translateX(-50%);background:white;padding:16px;border-radius:10px;border:2px solid var(--accent);z-index:999;animation:pop 600ms ease;}
+  @keyframes pop{0%{transform:translateX(-50%) scale(.6);opacity:0}60%{transform:translateX(-50%) scale(1.08);opacity:1}100%{transform:translateX(-50%) scale(1)}}
+  .avatar{width:64px;height:64px;border-radius:8px;object-fit:cover;border:1px solid #eee;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .muted{color:#777;font-size:13px;}
+  .chip{display:inline-block;padding:6px 8px;background:#fff;border:1px solid #ffd59a;border-radius:16px;margin:4px 4px 0 0;}
+  .file-preview{max-width:120px;border-radius:8px;border:1px solid #eee;display:block;margin-top:8px;}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  footer{font-size:13px;color:#666;margin-top:12px;}
+</style>
+</head>
+<body>
+
+<h1>☀️ひなたぼっこ☀️ フル機能デモ</h1>
+
+<div class="section two-col">
+  <div class="col">
+    <h2>🔐 ログイン / 新規登録</h2>
+    <div id="auth-area">
+      <label>ユーザー名（英数字）<input type="text" id="auth-username" placeholder="例：sakura"></label>
+      <label>パスワード<input type="password" id="auth-password" placeholder="（簡易保存）"></label>
+      <div class="controls">
+        <button class="btn" id="btn-register">新規登録 & プロフィール入力へ</button>
+        <button class="btn" id="btn-login">ログイン</button>
+        <button class="btn" id="btn-logout" style="display:none;background:#888">ログアウト</button>
+      </div>
+      <div id="auth-msg" class="small"></div>
+    </div>
+
+    <hr>
+
+    <div id="my-profile-section" style="display:none;">
+      <h2>🧾 あなたのプロフィール</h2>
+      <label>ニックネーム<input type="text" id="pf-nickname"></label>
+      <label>性別
+        <select id="pf-gender">
+          <option value="">選択してください</option>
+          <option value="女性">女性</option>
+          <option value="男性">男性</option>
+          <option value="その他">その他</option>
+        </select>
+      </label>
+      <label>年齢<input type="number" id="pf-age" min="18" max="120"></label>
+      <label>居住地<input type="text" id="pf-residence"></label>
+      <label>趣味（カンマ区切り）<input type="text" id="pf-hobbies" placeholder="例：カフェ,旅行,写真"></label>
+      <label>一言（検索カードに表示）<input type="text" id="pf-oneline"></label>
+      <label>プロフィール詳細<textarea id="pf-text" rows="3"></textarea></label>
+      <label>プロフィール写真（アップロード）<input type="file" id="pf-photo" accept="image/*"></label>
+      <img id="pf-photo-preview" class="file-preview" style="display:none;">
+      <div class="controls">
+        <button class="btn" id="btn-save-profile">保存して表示</button>
+        <button class="btn" id="btn-delete-account" style="background:#c14">アカウント削除（ローカル）</button>
+      </div>
+      <div class="small">※写真はブラウザの localStorage にデータURL形式で保存されます（サイズ注意）</div>
+    </div>
+
+    <hr>
+
+    <div>
+      <h2>🔎 検索</h2>
+      <label>名前で検索<input type="text" id="search-name" placeholder="ニックネームを入力"></label>
+      <label>年齢範囲 <input type="number" id="age-min" placeholder="最小" style="width:48%;"> 〜 <input type="number" id="age-max" placeholder="最大" style="width:48%;"></label>
+      <label>居住地<input type="text" id="search-residence" placeholder="例：東京"></label>
+      <div class="controls">
+        <button class="btn" id="btn-search">検索</button>
+        <button class="btn" id="btn-reset-search" style="background:#aaa">リセット</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="col">
+    <h2>🌷 会員一覧</h2>
+    <div id="userList"></div>
+
+    <hr>
+
+    <h2>👤 選択中プロフィール</h2>
+    <div id="profileDetail" class="profile-card">会員をクリックすると詳細がここに表示されます</div>
+
+    <hr>
+
+    <h2>💞 マッチ履歴</h2>
+    <div id="matchHistory" class="profile-card">まだマッチありません</div>
+
+    <hr>
+
+    <h2>💬 チャット (<span id="chatPartner">未選択</span>)</h2>
+    <div id="chat" aria-live="polite"></div>
+    <div style="margin-top:8px;display:flex;gap:8px;">
+      <input type="text" id="chatInput" placeholder="メッセージを入力" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ddd;">
+      <button class="btn" id="btn-send">送信</button>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h2>☀️ デート評価（クリックで保存）</h2>
+  <div id="ratingsArea" class="grid"></div>
+  <div id="ratingResult" class="small" style="margin-top:8px;"></div>
+</div>
+
+<!-- マッチポップ -->
+<div id="matchPopupHolder"></div>
+
+<footer>このデモは localStorage を利用した擬似的な実装です。実運用にはサーバー側の認証・保存が必要です。</footer>
+
+<script>
+/* ====== ヘルパー（安全取得） ====== */
+function safeGet(id){ return document.getElementById(id) || null; }
+function uid(name){ return (name||'').toLowerCase().replace(/\s+/g,'_'); }
+
+/* ====== ストレージキー ====== */
+const KEY_USERS = 'hinata_users_v1';       // 登録ユーザー情報（配列）
+const KEY_CURRENT = 'hinata_current_v1';   // 現在ログイン中のユーザーID
+const KEY_CHATS = 'hinata_chats_v1';       // チャット履歴オブジェクト
+const KEY_LIKES = 'hinata_likes_v1';       // いいね情報
+const KEY_MATCHES = 'hinata_matches_v1';   // マッチ一覧（ユーザーID->配列）
+const KEY_RATINGS = 'hinata_ratings_v1';   // 評価保存
+const KEY_PHOTOS = 'hinata_photos_v1';     // 写真保存 map id->dataURL
+
+/* ====== 初期データ（ダミー会員・例） ====== */
+function seedDummy(){
+  if(localStorage.getItem(KEY_USERS)) return;
+  const dummy = [
+    {id:'yui', user:'yui', pw:'pass', nickname:'結衣', gender:'女性', age:25, residence:'東京', hobbies:['カフェ','写真'], oneline:'カフェと猫が好き☕🐱', text:'カフェ巡りが好きです。のんびりした時間を一緒に過ごせる方に会いたいです。'},
+    {id:'mizuki', user:'mizuki', pw:'pass', nickname:'美月', gender:'女性', age:31, residence:'北海道', hobbies:['温泉','旅行'], oneline:'自然と温泉でリラックス♨️', text:'週末は温泉でゆったり。アウトドアも好きです。'},
+    {id:'shota', user:'shota', pw:'pass', nickname:'翔太', gender:'男性', age:29, residence:'神奈川', hobbies:['スポーツ','筋トレ'], oneline:'運動大好き！', text:'スポーツ観戦や一緒に体を動かすのが好きです。'},
+    {id:'daiki', user:'daiki', pw:'pass', nickname:'大輝', gender:'男性', age:27, residence:'大阪', hobbies:['料理','旅行'], oneline:'料理男子です🍳', text:'家庭的な時間が好き。美味しいものを一緒に作りたい。'}
+  ];
+  localStorage.setItem(KEY_USERS, JSON.stringify(dummy));
+  localStorage.setItem(KEY_LIKES, JSON.stringify({})); 
+  localStorage.setItem(KEY_MATCHES, JSON.stringify({}));
+  localStorage.setItem(KEY_CHATS, JSON.stringify({}));
+  localStorage.setItem(KEY_RATINGS, JSON.stringify({}));
+  localStorage.setItem(KEY_PHOTOS, JSON.stringify({}));
+}
+seedDummy();
+
+/* ====== 認証周り（擬似） ====== */
+function getUsers(){ return JSON.parse(localStorage.getItem(KEY_USERS)||'[]'); }
+function saveUsers(arr){ localStorage.setItem(KEY_USERS, JSON.stringify(arr)); }
+
+function registerUser(user, pw){
+  const users = getUsers();
+  if(users.find(u=>u.user===user)) return {ok:false,msg:'そのユーザー名は既に使われています'};
+  const id = uid(user);
+  users.push({id:id, user:user, pw:pw, nickname:user, gender:'', age:null, residence:'', hobbies:[], oneline:'', text:''});
+  saveUsers(users);
+  return {ok:true,id:id};
+}
+
+function loginUser(user, pw){
+  const users = getUsers();
+  const found = users.find(u=>u.user===user && u.pw===pw);
+  if(!found) return {ok:false,msg:'ユーザー名かパスワードが違います'};
+  localStorage.setItem(KEY_CURRENT, found.id);
+  loadCurrentProfileToForm();
+  return {ok:true,id:found.id};
+}
+
+function logout(){
+  localStorage.removeItem(KEY_CURRENT);
+  safeGet('btn-logout').style.display='none';
+  safeGet('auth-msg').textContent='ログアウトしました';
+  // hide profile area
+  safeGet('my-profile-section').style.display='none';
+}
+
+/* ====== UI 初期化 / 表示系 ====== */
+function currentUserId(){ return localStorage.getItem(KEY_CURRENT) || null; }
+
+function getPhotos(){ return JSON.parse(localStorage.getItem(KEY_PHOTOS)||'{}'); }
+function savePhotoMap(m){ localStorage.setItem(KEY_PHOTOS, JSON.stringify(m)); }
+
+function getChats(){ return JSON.parse(localStorage.getItem(KEY_CHATS)||'{}'); }
+function saveChats(obj){ localStorage.setItem(KEY_CHATS, JSON.stringify(obj)); }
+
+function getLikes(){ return JSON.parse(localStorage.getItem(KEY_LIKES)||'{}'); }
+function saveLikes(obj){ localStorage.setItem(KEY_LIKES, JSON.stringify(obj)); }
+
+function getMatches(){ return JSON.parse(localStorage.getItem(KEY_MATCHES)||'{}'); }
+function saveMatches(obj){ localStorage.setItem(KEY_MATCHES, JSON.stringify(obj)); }
+
+function getRatings(){ return JSON.parse(localStorage.getItem(KEY_RATINGS)||'{}'); }
+function saveRatings(obj){ localStorage.setItem(KEY_RATINGS, JSON.stringify(obj)); }
+
+function renderUserList(filterObj){
+  const container = safeGet('userList');
+  container.innerHTML='';
+  const users = getUsers();
+  users.forEach(u=>{
+    // skip if no user data? show all for now
+    // filter checks
+    if(filterObj){
+      if(filterObj.name && !u.nickname.includes(filterObj.name)) return;
+      if(filterObj.residence && !u.residence.includes(filterObj.residence)) return;
+      if(filterObj.minAge && (u.age===null || u.age<filterObj.minAge)) return;
+      if(filterObj.maxAge && (u.age===null || u.age>filterObj.maxAge)) return;
+    }
+    const div = document.createElement('div');
+    div.className='profile-card';
+    // photo if any
+    const photos = getPhotos();
+    const photoHtml = photos[u.id] ? `<img src="${photos[u.id]}" class="avatar" alt="photo">` : `<div style="width:64px;height:64px;border-radius:8px;background:#fff;border:1px solid #eee;display:inline-block;text-align:center;line-height:64px;color:#999;margin-right:8px;">No</div>`;
+    div.innerHTML=`
+      <div style="display:flex;gap:8px;align-items:center;">
+        ${photoHtml}
+        <div style="flex:1;">
+          <strong>${u.nickname || u.user}</strong> <span class="muted">(${u.age||'年齢未設定'})</span><br>
+          <span class="muted">${u.residence || ''}</span><br>
+          <span class="small">${u.oneline || ''}</span>
+        </div>
+      </div>
+      <div style="margin-top:8px;">
+        <button class="btn" onclick='showDetail("${u.id}")'>詳細</button>
+        <button class="btn" onclick='doLike("${u.id}")' style="background:#ffb74d">いいね</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+/* ====== 詳細表示（クリックで） ====== */
+function showDetail(id){
+  const users = getUsers();
+  const u = users.find(x=>x.id===id);
+  if(!u) return;
+  const photos = getPhotos();
+  const photoHtml = photos[id] ? `<img src="${photos[id]}" class="file-preview">` : '';
+  safeGet('profileDetail').innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;">
+      ${photoHtml}
+      <div>
+        <h3 style="margin:0">${u.nickname || u.user}</h3>
+        <div class="muted">${u.gender||''} ・ ${u.age || ''}歳 ・ ${u.residence||''}</div>
+        <div style="margin-top:6px">${u.text||''}</div>
+        <div style="margin-top:6px">
+          ${ (u.hobbies||[]).map(h=>`<span class="chip">${h}</span>`).join('') }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ====== いいね / マッチ ====== */
+function doLike(targetId){
+  const me = currentUserId();
+  if(!me){ alert('ログインしてください'); return; }
+  if(me === targetId){ alert('自分にはいいねできません'); return; }
+  const likes = getLikes();
+  likes[me] = likes[me]||[];
+  if(!likes[me].includes(targetId)) likes[me].push(targetId);
+  saveLikes(likes);
+
+  // マッチ判定：相手が既にあなたにいいねしているか
+  if(likes[targetId] && likes[targetId].includes(me)){
+    // match!
+    const matches = getMatches();
+    matches[me] = matches[me]||[];
+    matches[targetId] = matches[targetId]||[];
+    if(!matches[me].includes(targetId)) matches[me].push(targetId);
+    if(!matches[targetId].includes(me)) matches[targetId].push(me);
+    saveMatches(matches);
+    showMatchPopup(targetId);
+    renderMatches(); // 更新
+  } else {
+    alert('いいねしました');
+  }
+}
+
+/* ====== マッチ演出ポップアップ ====== */
+function showMatchPopup(otherId){
+  const users = getUsers();
+  const u = users.find(x=>x.id===otherId);
+  const holder = safeGet('matchPopupHolder');
+  const popup = document.createElement('div');
+  popup.className='match-popup';
+  popup.innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div style="font-size:28px">✨</div>
+      <div>
+        <strong>マッチしました！</strong><br>
+        ${u ? u.nickname : otherId} さんとマッチです💞
+        <div style="margin-top:8px;">
+          <button class="btn" onclick="openChatWith('${otherId}');closePopup(this)">チャットを始める</button>
+          <button class="btn" style="background:#aaa" onclick="closePopup(this)">閉じる</button>
+        </div>
+      </div>
+    </div>
+  `;
+  holder.appendChild(popup);
+  // 自動で消える（3.5秒）
+  setTimeout(()=>{ if(popup.parentNode) popup.parentNode.removeChild(popup); }, 3500);
+}
+function closePopup(el){ const p = el.closest('.match-popup'); if(p && p.parentNode) p.parentNode.removeChild(p); }
+
+/* ====== マッチ履歴表示（クリックでチャット相手選択） ====== */
+function renderMatches(){
+  const me = currentUserId();
+  const box = safeGet('matchHistory');
+  if(!box) return;
+  const matches = getMatches();
+  box.innerHTML = '';
+  if(!me || !matches[me] || matches[me].length===0){
+    box.innerHTML = 'まだマッチがありません';
+    return;
+  }
+  matches[me].forEach(id=>{
+    const users = getUsers();
+    const u = users.find(x=>x.id===id);
+    const div = document.createElement('div');
+    div.className = 'profile-card';
+    div.innerHTML = `<strong>${u ? u.nickname : id}</strong> 
+      <div style="margin-top:6px;">
+        <button class="btn" onclick='openChatWith("${id}")'>チャット</button>
+        <button class="btn" style="background:#aaa" onclick='showDetail("${id}")'>プロフィール</button>
+      </div>`;
+    box.appendChild(div);
+  });
+}
+
+/* ====== チャット履歴相手別保存 ====== */
+function chatsKey(a,b){ // normalized key
+  const [x,y] = [a,b].sort();
+  return `${x}__${y}`;
+}
+function openChatWith(otherId){
+  const me = currentUserId();
+  if(!me){ alert('ログインしてください'); return; }
+  currentPartner = otherId;
+  safeGet('chatPartner').textContent = (getUsers().find(u=>u.id===otherId)?.nickname || otherId);
+  renderChat();
+}
+function renderChat(){
+  const me = currentUserId();
+  const partner = currentPartner;
+  const chatDiv = safeGet('chat');
+  chatDiv.innerHTML='';
+  if(!me || !partner) return;
+  const key = chatsKey(me, partner);
+  const all = getChats();
+  const arr = all[key] || [];
+  arr.forEach(m=>{
+    const p = document.createElement('p');
+    p.innerHTML = `<strong>${m.from === me ? 'あなた' : (getUsers().find(u=>u.id===m.from)?.nickname || m.from)}:</strong> ${escapeHtml(m.text)} <span class="muted" style="font-size:12px">(${new Date(m.ts).toLocaleString()})</span>`;
+    chatDiv.appendChild(p);
+  });
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+}
+function sendChatMessage(){
+  const me = currentUserId();
+  const partner = currentPartner;
+  const inp = safeGet('chatInput');
+  if(!me || !partner){ alert('チャット相手を選んでください'); return; }
+  const text = inp.value.trim();
+  if(!text) return;
+  const key = chatsKey(me, partner);
+  const all = getChats();
+  all[key] = all[key] || [];
+  all[key].push({from:me, text:text, ts:Date.now()});
+  saveChats(all);
+  inp.value='';
+  renderChat();
+}
+safeGet('btn-send').addEventListener('click', sendChatMessage);
+
+/* ====== 評価（☀️クリックで保存＆表示） ====== */
+const ratingItems = ["楽しさ","清潔感・身だしなみ","時間厳守","気遣い・マナー","雰囲気","総合的に"];
+function buildRatingsUI(){
+  const area = safeGet('ratingsArea');
+  area.innerHTML='';
+  ratingItems.forEach(item=>{
+    const div = document.createElement('div');
+    div.innerHTML = `<strong>${item}</strong><br>`;
+    for(let i=1;i<=5;i++){
+      const s = document.createElement('span');
+      s.className='sun';
+      s.textContent='☀️';
+      s.dataset.item = item;
+      s.dataset.val = i;
+      s.onclick = ()=>{ setRating(item,i); };
+      div.appendChild(s);
+    }
+    area.appendChild(div);
+  });
+}
+function setRating(item,val){
+  const me = currentUserId();
+  if(!me){ alert('ログインしてください'); return; }
+  const all = getRatings();
+  all[me] = all[me] || {};
+  all[me][item] = val;
+  saveRatings(all);
+  updateRatingView();
+}
+function updateRatingView(){
+  const me = currentUserId();
+  const out = safeGet('ratingResult');
+  if(!me) { out.textContent = 'ログインすると評価を保存できます'; return; }
+  const all = getRatings();
+  const mine = all[me] || {};
+  let html='';
+  ratingItems.forEach(it=>{
+    if(mine[it]) html += `${it}：${'☀️'.repeat(mine[it])} (${mine[it]})\n`;
+  });
+  out.textContent = html || 'まだ評価がありません';
+}
+buildRatingsUI();
+updateRatingView();
+
+/* ====== プロフィール写真アップロード（dataURL） ====== */
+safeGet('pf-photo').addEventListener('change', (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    safeGet('pf-photo-preview').src = ev.target.result;
+    safeGet('pf-photo-preview').style.display='block';
+    // temporarily keep in memory; saved on profile save
+    safeGet('pf-photo-preview').dataset.tmp = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+});
+
+/* ====== プロフィール保存 & 復元 ====== */
+function saveProfileForCurrent(){
+  const me = currentUserId();
+  if(!me) { alert('ログインしてください'); return; }
+  const users = getUsers();
+  const u = users.find(x=>x.id===me);
+  if(!u) return;
+  u.nickname = safeGet('pf-nickname').value || u.nickname || u.user;
+  u.gender = safeGet('pf-gender').value || u.gender;
+  u.age = parseInt(safeGet('pf-age').value) || u.age;
+  u.residence = safeGet('pf-residence').value || u.residence;
+  u.hobbies = (safeGet('pf-hobbies').value || '').split(',').map(s=>s.trim()).filter(Boolean);
+  u.oneline = safeGet('pf-oneline').value || u.oneline;
+  u.text = safeGet('pf-text').value || u.text;
+  // photo
+  const preview = safeGet('pf-photo-preview');
+  if(preview && preview.dataset.tmp){
+    const photos = getPhotos();
+    photos[me] = preview.dataset.tmp;
+    savePhotoMap(photos);
+    delete preview.dataset.tmp;
+  }
+  saveUsers(users);
+  alert('プロフィールを保存しました');
+  renderUserList(); showDetail(me); renderMatches(); updateRatingView();
+}
+
+/* ====== register/login button events ====== */
+safeGet('btn-register').addEventListener('click', ()=>{
+  const u = safeGet('auth-username').value.trim();
+  const p = safeGet('auth-password').value;
+  if(!u || !p){ alert('ユーザー名とパスワードを入力してください'); return; }
+  const r = registerUser(u,p);
+  if(!r.ok){ alert(r.msg); return; }
+  localStorage.setItem(KEY_CURRENT, r.id);
+  safeGet('auth-msg').textContent = '登録しました。プロフィールを入力してください';
+  safeGet('btn-logout').style.display='inline-block';
+  safeGet('my-profile-section').style.display='block';
+  loadCurrentProfileToForm();
+  renderUserList();
+  renderMatches();
+});
+safeGet('btn-login').addEventListener('click', ()=>{
+  const u = safeGet('auth-username').value.trim();
+  const p = safeGet('auth-password').value;
+  if(!u || !p){ alert('ユーザー名とパスワードを入力してください'); return; }
+  const r = loginUser(u,p);
+  if(!r.ok){ alert(r.msg); return; }
+  safeGet('auth-msg').textContent = 'ログインしました';
+  safeGet('btn-logout').style.display='inline-block';
+  safeGet('my-profile-section').style.display='block';
+  renderUserList(); renderMatches(); updateRatingView();
+});
+safeGet('btn-logout').addEventListener('click', ()=>{
+  logout();
+  renderUserList(); renderMatches(); updateRatingView();
+});
+
+/* ====== 初期表示 / 起動時復元 ====== */
+function loadCurrentProfileToForm(){
+  const me = currentUserId();
+  if(!me) return;
+  const users = getUsers();
+  const u = users.find(x=>x.id===me);
+  if(!u) return;
+  safeGet('pf-nickname').value = u.nickname || '';
+  safeGet('pf-gender').value = u.gender || '';
+  safeGet('pf-age').value = u.age || '';
+  safeGet('pf-residence').value = u.residence || '';
+  safeGet('pf-hobbies').value = (u.hobbies||[]).join(',');
+  safeGet('pf-oneline').value = u.oneline || '';
+  safeGet('pf-text').value = u.text || '';
+  const photos = getPhotos();
+  if(photos[me]){
+    safeGet('pf-photo-preview').src = photos[me];
+    safeGet('pf-photo-preview').style.display='block';
+  } else {
+    safeGet('pf-photo-preview').style.display='none';
+  }
+}
+
+safeGet('btn-save-profile').addEventListener('click', saveProfileForCurrent);
+
+/* ====== サーチボタン / リセット ====== */
+safeGet('btn-search').addEventListener('click', ()=>{
+  const name = safeGet('search-name').value.trim();
+  const min = parseInt(safeGet('age-min').value) || null;
+  const max = parseInt(safeGet('age-max').value) || null;
+  const res = safeGet('search-residence').value.trim();
+  renderUserList({name:name || null, minAge:min, maxAge:max, residence:res || null});
+});
+safeGet('btn-reset-search').addEventListener('click', ()=>{
+  safeGet('search-name').value=''; safeGet('age-min').value=''; safeGet('age-max').value=''; safeGet('search-residence').value='';
+  renderUserList();
+});
+
+/* ====== アカウント削除（ローカル） ====== */
+safeGet('btn-delete-account').addEventListener('click', ()=>{
+  const me = currentUserId();
+  if(!me){ alert('ログインしてください'); return; }
+  if(!confirm('本当にこのアカウントを削除しますか？（localStorage内のデータが消えます）')) return;
+  let users = getUsers().filter(u=>u.id!==me);
+  saveUsers(users);
+  // remove photos, likes, matches, chats, ratings entries for me
+  let photos = getPhotos(); delete photos[me]; savePhotoMap(photos);
+  let likes = getLikes(); delete likes[me]; saveLikes(likes);
+  let matches = getMatches(); delete matches[me]; for(const k in matches) matches[k] = matches[k].filter(x=>x!==me); saveMatches(matches);
+  let chats = getChats(); for(const k in chats){ if(k.includes(me)) delete chats[k]; } saveChats(chats);
+  let ratings = getRatings(); delete ratings[me]; saveRatings(ratings);
+  localStorage.removeItem(KEY_CURRENT);
+  alert('アカウントを削除しました');
+  renderUserList(); renderMatches(); updateRatingView();
+});
+
+/* ====== 初期レンダー ====== */
+(function init(){
+  // restore login if exists
+  if(currentUserId()){
+    safeGet('my-profile-section').style.display='block';
+    safeGet('btn-logout').style.display='inline-block';
+    loadCurrentProfileToForm();
+  } else {
+    safeGet('my-profile-section').style.display='none';
+  }
+  renderUserList();
+  renderMatches();
+  updateRatingView();
+})();
+
+/* ====== ユーティリティ ====== */
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+</script>
+</body>
+</html>

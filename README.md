@@ -1,1 +1,0 @@
-# hinata-app-date
